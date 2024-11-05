@@ -2,6 +2,8 @@ import yaml
 import subprocess
 import frontmatter
 import os
+import re
+import argparse
 
 
 def biblatex_to_yaml(input_file: str, output_file: str):
@@ -85,6 +87,12 @@ def clean_yaml(input_file: str):
                 entry_dict["keywords"] = (
                     entry_dict.pop("keywords").split(",")
                 )
+                
+            # Regular expression to match non-alphanumeric characters in title
+            #regex = re.compile('[^a-zA-Z0-9]')            
+            # Search for non-alphanumeric characters in the input string
+            #if regex.search(entry_dict["title"]):
+            #   entry_dict["title"] = f"{entry_dict["title"]}"
 
         # Remove all '{' and '}' characters from the values in the entry
         remove_curly_braces(data)
@@ -144,7 +152,7 @@ def update(md_files, yaml_data):
         )  # Split the file name and extension
         name = file_name.lstrip("@").lower()
 
-        print(file)
+        #print(file)
         update_md(file, yaml_data["entries"][name])
 
 def remove_file(file_path):
@@ -157,22 +165,31 @@ def remove_file(file_path):
         print(f"The file {file_path} does not exist.")
 
 
-def main():
-    # Ask user for input
-    bib_file_path = "/home/werchr/HSW/Research/PhD-obsidian/sources.bib"  # input("Enter the path to your BibLaTeX file: ")
-    yaml_file_path = "/home/werchr/HSW/Research/PhD-obsidian/sources.yaml"  # input("Enter the path where you want to save the YAML output file: ")
-    md_path = "/home/werchr/HSW/Research/PhD-obsidian/sources"
-
+def main(bib_file_path, yaml_file_path, md_path):
+    # Convert BibLaTeX to YAML
     biblatex_to_yaml(bib_file_path, yaml_file_path)
     clean_yaml(yaml_file_path)
 
+    # Load YAML data
     with open(yaml_file_path, "r") as file:
         yaml_data = yaml.safe_load(file)
 
+    # Find Markdown files and update them
     md_files = find_md_files(md_path)
-
     update(md_files, yaml_data)
+
+    # Remove the temporary YAML file
     remove_file(yaml_file_path)
 
 if __name__ == "__main__":
-    main()
+    # Set up argument parsing
+    parser = argparse.ArgumentParser(description="Convert BibLaTeX to YAML and update Markdown files.")
+    parser.add_argument("bib_file_path", help="Path to the BibLaTeX file")
+    parser.add_argument("yaml_file_path", help="Path where the YAML output file will be saved")
+    parser.add_argument("md_path", help="Path to the directory containing Markdown files")
+
+    # Parse the arguments
+    args = parser.parse_args()
+
+    # Call main with parsed arguments
+    main(args.bib_file_path, args.yaml_file_path, args.md_path)
